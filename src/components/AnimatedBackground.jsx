@@ -1,5 +1,5 @@
 export default function AnimatedBackground() {
   return (
-    <div className="fixed inset-0 -z-10 bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-700 bg-[length:400%_400%] animate-gradient" />
+    <div className="fixed inset-0 -z-10 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 animate-gradient" />
   );
 }

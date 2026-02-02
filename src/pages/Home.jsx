@@ -1,10 +1,21 @@
-export default function Home() {
+import Hero from "../components/home/Hero";
+import Stats from "../components/home/Stats";
+import WhatWeDo from "../components/home/WhatWeDo";
+import HowWeDeliver from "../components/home/HowWeDeliver";
+import TechStack from "../components/home/TechStack";
+import CTA from "../components/home/CTA";
+
+function Home() {
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center text-white">
-      <h1 className="text-6xl font-bold mb-4">Eleto Industries</h1>
-      <p className="text-xl opacity-90">
-        IoT • Embedded Systems • Edge AI Solutions
-      </p>
-    </section>
+    <>
+      <Hero />
+      <Stats />
+      <WhatWeDo />
+      <HowWeDeliver />
+      <TechStack />
+      <CTA />
+    </>
   );
 }
+
+export default Home;
