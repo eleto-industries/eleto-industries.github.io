@@ -1,9 +1,11 @@
-import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 
-export const addLead = async (lead) => {
+export const addLead = async ({ name, email, message }) => {
   await addDoc(collection(db, "leads"), {
-    ...lead,
+    name,
+    email,
+    message,
     createdAt: serverTimestamp(),
   });
 };
