@@ -1,5 +1,17 @@
 export default function AnimatedBackground() {
   return (
-    <div className="fixed inset-0 -z-10 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 animate-gradient" />
+    <div
+      className="animate-gradient"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        background:
+          "linear-gradient(120deg, #0ea5e9, #2563eb, #1e40af)",
+        backgroundSize: "300% 300%",
+        animation: "gradient 12s ease infinite",
+        pointerEvents: "none",
+      }}
+    />
   );
 }

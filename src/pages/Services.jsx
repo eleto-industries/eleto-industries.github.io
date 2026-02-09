@@ -58,7 +58,7 @@ export default function Services() {
   const [activeService, setActiveService] = useState(null);
 
   return (
-    <section className="min-h-screen py-32 px-6 bg-black text-white">
+    <section className="min-h-screen py-32 px-6  text-white">
       <div className="max-w-6xl mx-auto">
 
         <h1 className="text-5xl font-bold mb-16 text-center">

@@ -1,136 +1,330 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../firebase";
+import { useAuth } from "../auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-export default function ProjectDetail() {
-  const { id } = useParams();
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function AdminProjects() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [projects, setProjects] = useState([]);
+  const [form, setForm] = useState({
+    title: "",
+    domain: "",
+    summary: "",
+    impact: "",
+    skills: "",
+  });
+
+  /* ================= FETCH PROJECTS ================= */
+  const fetchProjects = async () => {
+    const snap = await getDocs(collection(db, "projects"));
+    setProjects(
+      snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }))
+    );
+  };
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const snap = await getDoc(doc(db, "projects", id));
-        if (snap.exists()) {
-          setProject(snap.data());
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchProjects();
+  }, []);
 
-    fetchProject();
-  }, [id]);
+  /* ================= ADD PROJECT ================= */
+  const addProject = async () => {
+    if (!form.title || !form.domain) {
+      alert("Title and Domain are required");
+      return;
+    }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Loading project...
-      </div>
-    );
-  }
+    await addDoc(collection(db, "projects"), {
+      title: form.title,
+      domain: form.domain,
+      summary: form.summary,
+      significance: form.impact,
+      skills: form.skills.split(",").map((s) => s.trim()),
+      createdAt: serverTimestamp(),
+    });
 
-  if (!project) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Project not found
-      </div>
-    );
-  }
+    setForm({
+      title: "",
+      domain: "",
+      summary: "",
+      impact: "",
+      skills: "",
+    });
+
+    fetchProjects();
+  };
+
+  /* ================= DELETE ================= */
+  const deleteProject = async (id) => {
+    if (!window.confirm("Delete this project?")) return;
+    await deleteDoc(doc(db, "projects", id));
+    fetchProjects();
+  };
 
   return (
-    <div className="relative min-h-screen text-white">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-[#081a2b] to-black animate-gradient" />
+    <div style={styles.page}>
+      {/* SIDEBAR */}
+      <aside style={styles.sidebar}>
+        <h2 style={styles.logo}>Eleto Admin</h2>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 py-24">
-        <Link
-          to="/projects"
-          className="text-blue-400 hover:text-blue-300 mb-6 inline-block"
+        <button style={styles.navActive}>Projects</button>
+
+        <button style={styles.nav} onClick={() => navigate("/")}>
+          ← Website
+        </button>
+
+        <button
+          style={{ ...styles.nav, color: "#f87171" }}
+          onClick={() => {
+            logout();
+            navigate("/admin/login");
+          }}
         >
-          ← Back to Projects
-        </Link>
+          Logout
+        </button>
+      </aside>
 
-        {/* Hero Image */}
-        {project.images?.[0] && (
-          <img
-            src={project.images[0]}
-            alt={project.title}
-            className="w-full h-80 object-cover rounded-2xl mb-10"
-          />
-        )}
-
-        <h1 className="text-4xl font-bold mb-4">
-          {project.title}
-        </h1>
-
-        <p className="text-gray-300 text-lg mb-6">
-          {project.summary}
+      {/* MAIN */}
+      <main style={styles.main}>
+        <h1 style={styles.heading}>Project Administration</h1>
+        <p style={styles.subheading}>
+          Manage portfolio projects displayed on the website
         </p>
 
-        {project.significance && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-2">
-              Significance
-            </h2>
-            <p className="text-gray-300">
-              {project.significance}
-            </p>
-          </div>
-        )}
+        {/* ADD PROJECT */}
+        <section style={styles.card}>
+          <h2 style={styles.sectionTitle}>Add New Project</h2>
 
-        {project.skills?.length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-xl font-semibold mb-3">
-              Technologies Used
-            </h2>
-            <div className="flex flex-wrap gap-3">
-              {project.skills.map((skill, i) => (
-                <span
-                  key={i}
-                  className="px-4 py-1 rounded-full bg-blue-600/20 text-blue-300"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+          <input
+            style={styles.input}
+            placeholder="Project title"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
 
-        {/* Gallery */}
-        {project.images?.length > 1 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">
-              Project Gallery
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {project.images.slice(1).map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  alt="project"
-                  className="rounded-xl object-cover"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+          <select
+            style={styles.input}
+            value={form.domain}
+            onChange={(e) => setForm({ ...form, domain: e.target.value })}
+          >
+            <option value="">Select domain</option>
+            <option value="IoT">IoT</option>
+            <option value="Embedded Systems">Embedded Systems</option>
+            <option value="Artificial Intelligence">
+              Artificial Intelligence
+            </option>
+          </select>
 
-      <style>{`
-        .animate-gradient {
-          background-size: 400% 400%;
-          animation: gradientMove 20s ease infinite;
-        }
-        @keyframes gradientMove {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
+          <textarea
+            style={styles.textarea}
+            placeholder="Short summary"
+            value={form.summary}
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+          />
+
+          <textarea
+            style={styles.textarea}
+            placeholder="Impact / significance"
+            value={form.impact}
+            onChange={(e) => setForm({ ...form, impact: e.target.value })}
+          />
+
+          <input
+            style={styles.input}
+            placeholder="Skills (comma separated)"
+            value={form.skills}
+            onChange={(e) => setForm({ ...form, skills: e.target.value })}
+          />
+
+          <button style={styles.primaryBtn} onClick={addProject}>
+            + Add Project
+          </button>
+        </section>
+
+        {/* PROJECT LIST */}
+        <section>
+          <h2 style={styles.sectionTitle}>Existing Projects</h2>
+
+          <div style={styles.grid}>
+            {projects.map((p) => (
+              <div key={p.id} style={styles.projectCard}>
+                <h3>{p.title}</h3>
+                <p style={styles.muted}>{p.summary}</p>
+
+                <div style={styles.actions}>
+                  <button style={styles.editBtn}>Edit</button>
+                  <button
+                    style={styles.deleteBtn}
+                    onClick={() => deleteProject(p.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+
+const styles = {
+  page: {
+    display: "flex",
+    minHeight: "100vh",
+    background: "linear-gradient(180deg,#020617,#020617)",
+    color: "#e5e7eb",
+    fontFamily: "Inter, sans-serif",
+  },
+
+  sidebar: {
+    width: 240,
+    background: "#020617",
+    borderRight: "1px solid #1e293b",
+    padding: 24,
+  },
+
+  logo: {
+    marginBottom: 24,
+    fontSize: 22,
+  },
+
+  navActive: {
+    width: "100%",
+    padding: 12,
+    marginBottom: 10,
+    background: "#2563eb",
+    border: "none",
+    borderRadius: 8,
+    color: "#fff",
+    cursor: "pointer",
+  },
+
+  nav: {
+    width: "100%",
+    padding: 12,
+    marginBottom: 10,
+    background: "transparent",
+    border: "1px solid #1e293b",
+    borderRadius: 8,
+    color: "#cbd5f5",
+    cursor: "pointer",
+  },
+
+  main: {
+    flex: 1,
+    padding: 40,
+  },
+
+  heading: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+
+  subheading: {
+    color: "#94a3b8",
+    marginBottom: 30,
+  },
+
+  card: {
+    background: "#020617",
+    border: "1px solid #1e293b",
+    borderRadius: 14,
+    padding: 24,
+    marginBottom: 40,
+  },
+
+  sectionTitle: {
+    fontSize: 20,
+    marginBottom: 16,
+  },
+
+  input: {
+    width: "100%",
+    marginBottom: 12,
+    padding: "12px 14px",
+    borderRadius: 8,
+    background: "#020617",
+    border: "1px solid #1e293b",
+    color: "#e5e7eb",
+  },
+
+  textarea: {
+    width: "100%",
+    marginBottom: 12,
+    padding: "12px 14px",
+    borderRadius: 8,
+    background: "#020617",
+    border: "1px solid #1e293b",
+    color: "#e5e7eb",
+    minHeight: 80,
+  },
+
+  primaryBtn: {
+    marginTop: 10,
+    padding: "12px 18px",
+    background: "#2563eb",
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 600,
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+    gap: 20,
+  },
+
+  projectCard: {
+    background: "#020617",
+    border: "1px solid #1e293b",
+    borderRadius: 12,
+    padding: 20,
+  },
+
+  muted: {
+    color: "#94a3b8",
+    fontSize: 14,
+  },
+
+  actions: {
+    marginTop: 14,
+    display: "flex",
+    gap: 10,
+  },
+
+  editBtn: {
+    padding: "8px 14px",
+    background: "#334155",
+    border: "none",
+    borderRadius: 8,
+    color: "#fff",
+    cursor: "pointer",
+  },
+
+  deleteBtn: {
+    padding: "8px 14px",
+    background: "#dc2626",
+    border: "none",
+    borderRadius: 8,
+    color: "#fff",
+    cursor: "pointer",
+  },
+};

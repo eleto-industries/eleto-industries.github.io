@@ -1,77 +1,77 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
+import AdminRoute from "./auth/AdminRoute";
 
-/* Global layout */
-import Navbar from "./components/Navbar";
-import AnimatedBackground from "./components/AnimatedBackground";
+import Layout from "./layouts/Layout";
 
-/* Public pages */
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Projects from "./pages/Projects";
-import ProjectDetails from "./pages/ProjectDetails";
 import Contact from "./pages/Contact";
 
-/* Admin */
 import AdminLogin from "./pages/AdminLogin";
+import AdminProjects from "./pages/AdminProjects";
 
-/**
- * GitHub Pages requires basename in production.
- * Local dev must NOT use basename.
- */
-const basename =
-  import.meta.env.MODE === "production"
-    ? "/eleto-industries"
-    : "/";
-
-function App() {
+export default function App() {
   return (
-    <BrowserRouter basename={basename}>
-      {/* Global animated background */}
-      <AnimatedBackground />
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* ================= PUBLIC WEBSITE ================= */}
+          <Route
+            path="/"
+            element={
+              <Layout>
+                <Home />
+              </Layout>
+            }
+          />
 
-      {/* Global navbar */}
-      <Navbar />
+          <Route
+            path="/services"
+            element={
+              <Layout>
+                <Services />
+              </Layout>
+            }
+          />
 
-      {/* Routes */}
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/services" element={<Services />} />
+          <Route
+            path="/projects"
+            element={
+              <Layout>
+                <Projects />
+              </Layout>
+            }
+          />
 
-        {/* Projects (Option B) */}
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:id" element={<ProjectDetails />} />
+          <Route
+            path="/contact"
+            element={
+              <Layout>
+                <Contact />
+              </Layout>
+            }
+          />
 
-        <Route path="/contact" element={<Contact />} />
+          {/* ================= ADMIN ================= */}
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* 404 */}
-        <Route
-          path="*"
-          element={
-            <div style={styles.notFound}>
-              <h1>404</h1>
-              <p>Page not found</p>
-            </div>
-          }
-        />
-      </Routes>
+          <Route
+            path="/admin/projects"
+            element={
+              <AdminRoute>
+                <AdminProjects />
+              </AdminRoute>
+            }
+          />
+
+          {/* ================= FALLBACK ================= */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
-
-const styles = {
-  notFound: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "#020617",
-    color: "#fff",
-  },
-};
-
-export default App;

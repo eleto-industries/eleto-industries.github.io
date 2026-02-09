@@ -8,11 +8,7 @@ const tech = [
   "Edge AI",
   "Computer Vision",
   "TensorFlow Lite",
-  "MQTT",
   "AWS IoT",
-  "Node.js",
-  "React",
-  "Linux",
 ];
 
 export default function TechStack() {
