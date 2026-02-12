@@ -5,6 +5,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -16,6 +17,8 @@ export default function AdminProjects() {
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+
   const [form, setForm] = useState({
     title: "",
     domain: "",
@@ -39,31 +42,46 @@ export default function AdminProjects() {
     fetchProjects();
   }, []);
 
-  /* ================= ADD PROJECT ================= */
-  const addProject = async () => {
+  /* ================= SAVE (ADD OR UPDATE) ================= */
+  const saveProject = async () => {
     if (!form.title || !form.domain) {
       alert("Title and Domain are required");
       return;
     }
 
-    await addDoc(collection(db, "projects"), {
+    const payload = {
       title: form.title,
       domain: form.domain,
       summary: form.summary,
       significance: form.impact,
       skills: form.skills.split(",").map((s) => s.trim()),
-      createdAt: serverTimestamp(),
-    });
+    };
 
-    setForm({
-      title: "",
-      domain: "",
-      summary: "",
-      impact: "",
-      skills: "",
-    });
+    try {
+      if (editingId) {
+        // UPDATE
+        await updateDoc(doc(db, "projects", editingId), payload);
+      } else {
+        // ADD NEW
+        await addDoc(collection(db, "projects"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+      }
 
-    fetchProjects();
+      setForm({
+        title: "",
+        domain: "",
+        summary: "",
+        impact: "",
+        skills: "",
+      });
+
+      setEditingId(null);
+      fetchProjects();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   /* ================= DELETE ================= */
@@ -71,6 +89,20 @@ export default function AdminProjects() {
     if (!window.confirm("Delete this project?")) return;
     await deleteDoc(doc(db, "projects", id));
     fetchProjects();
+  };
+
+  /* ================= EDIT ================= */
+  const editProject = (p) => {
+    setForm({
+      title: p.title || "",
+      domain: p.domain || "",
+      summary: p.summary || "",
+      impact: p.significance || "",
+      skills: (p.skills || []).join(", "),
+    });
+
+    setEditingId(p.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -103,9 +135,11 @@ export default function AdminProjects() {
           Manage portfolio projects displayed on the website
         </p>
 
-        {/* ADD PROJECT */}
+        {/* FORM */}
         <section style={styles.card}>
-          <h2 style={styles.sectionTitle}>Add New Project</h2>
+          <h2 style={styles.sectionTitle}>
+            {editingId ? "Edit Project" : "Add New Project"}
+          </h2>
 
           <input
             style={styles.input}
@@ -148,8 +182,8 @@ export default function AdminProjects() {
             onChange={(e) => setForm({ ...form, skills: e.target.value })}
           />
 
-          <button style={styles.primaryBtn} onClick={addProject}>
-            + Add Project
+          <button style={styles.primaryBtn} onClick={saveProject}>
+            {editingId ? "Update Project" : "+ Add Project"}
           </button>
         </section>
 
@@ -164,7 +198,10 @@ export default function AdminProjects() {
                 <p style={styles.muted}>{p.summary}</p>
 
                 <div style={styles.actions}>
-                  <button style={styles.editBtn}>Edit</button>
+                  <button style={styles.editBtn} onClick={() => editProject(p)}>
+                    Edit
+                  </button>
+
                   <button
                     style={styles.deleteBtn}
                     onClick={() => deleteProject(p.id)}
@@ -184,147 +221,23 @@ export default function AdminProjects() {
 /* ================= STYLES ================= */
 
 const styles = {
-  page: {
-    display: "flex",
-    minHeight: "100vh",
-    background: "linear-gradient(180deg,#020617,#020617)",
-    color: "#e5e7eb",
-    fontFamily: "Inter, sans-serif",
-  },
-
-  sidebar: {
-    width: 240,
-    background: "#020617",
-    borderRight: "1px solid #1e293b",
-    padding: 24,
-  },
-
-  logo: {
-    marginBottom: 24,
-    fontSize: 22,
-  },
-
-  navActive: {
-    width: "100%",
-    padding: 12,
-    marginBottom: 10,
-    background: "#2563eb",
-    border: "none",
-    borderRadius: 8,
-    color: "#fff",
-    cursor: "pointer",
-  },
-
-  nav: {
-    width: "100%",
-    padding: 12,
-    marginBottom: 10,
-    background: "transparent",
-    border: "1px solid #1e293b",
-    borderRadius: 8,
-    color: "#cbd5f5",
-    cursor: "pointer",
-  },
-
-  main: {
-    flex: 1,
-    padding: 40,
-  },
-
-  heading: {
-    fontSize: 28,
-    marginBottom: 6,
-  },
-
-  subheading: {
-    color: "#94a3b8",
-    marginBottom: 30,
-  },
-
-  card: {
-    background: "#020617",
-    border: "1px solid #1e293b",
-    borderRadius: 14,
-    padding: 24,
-    marginBottom: 40,
-  },
-
-  sectionTitle: {
-    fontSize: 20,
-    marginBottom: 16,
-  },
-
-  input: {
-    width: "100%",
-    marginBottom: 12,
-    padding: "12px 14px",
-    borderRadius: 8,
-    background: "#020617",
-    border: "1px solid #1e293b",
-    color: "#e5e7eb",
-  },
-
-  textarea: {
-    width: "100%",
-    marginBottom: 12,
-    padding: "12px 14px",
-    borderRadius: 8,
-    background: "#020617",
-    border: "1px solid #1e293b",
-    color: "#e5e7eb",
-    minHeight: 80,
-  },
-
-  primaryBtn: {
-    marginTop: 10,
-    padding: "12px 18px",
-    background: "#2563eb",
-    color: "#fff",
-    border: "none",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontWeight: 600,
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
-    gap: 20,
-  },
-
-  projectCard: {
-    background: "#020617",
-    border: "1px solid #1e293b",
-    borderRadius: 12,
-    padding: 20,
-  },
-
-  muted: {
-    color: "#94a3b8",
-    fontSize: 14,
-  },
-
-  actions: {
-    marginTop: 14,
-    display: "flex",
-    gap: 10,
-  },
-
-  editBtn: {
-    padding: "8px 14px",
-    background: "#334155",
-    border: "none",
-    borderRadius: 8,
-    color: "#fff",
-    cursor: "pointer",
-  },
-
-  deleteBtn: {
-    padding: "8px 14px",
-    background: "#dc2626",
-    border: "none",
-    borderRadius: 8,
-    color: "#fff",
-    cursor: "pointer",
-  },
+  page: { display: "flex", minHeight: "100vh", background: "#020617", color: "#e5e7eb" },
+  sidebar: { width: 240, background: "#020617", borderRight: "1px solid #1e293b", padding: 24 },
+  logo: { marginBottom: 24, fontSize: 22 },
+  navActive: { width: "100%", padding: 12, marginBottom: 10, background: "#2563eb", borderRadius: 8, color: "#fff" },
+  nav: { width: "100%", padding: 12, marginBottom: 10, border: "1px solid #1e293b", borderRadius: 8, color: "#cbd5f5" },
+  main: { flex: 1, padding: 40 },
+  heading: { fontSize: 28, marginBottom: 6 },
+  subheading: { color: "#94a3b8", marginBottom: 30 },
+  card: { background: "#020617", border: "1px solid #1e293b", borderRadius: 14, padding: 24, marginBottom: 40 },
+  sectionTitle: { fontSize: 20, marginBottom: 16 },
+  input: { width: "100%", marginBottom: 12, padding: 12, borderRadius: 8, background: "#020617", border: "1px solid #1e293b", color: "#e5e7eb" },
+  textarea: { width: "100%", marginBottom: 12, padding: 12, borderRadius: 8, background: "#020617", border: "1px solid #1e293b", color: "#e5e7eb", minHeight: 80 },
+  primaryBtn: { padding: "12px 18px", background: "#2563eb", borderRadius: 10, color: "#fff", cursor: "pointer" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 20 },
+  projectCard: { background: "#020617", border: "1px solid #1e293b", borderRadius: 12, padding: 20 },
+  muted: { color: "#94a3b8", fontSize: 14 },
+  actions: { marginTop: 14, display: "flex", gap: 10 },
+  editBtn: { padding: "8px 14px", background: "#334155", borderRadius: 8, color: "#fff", cursor: "pointer" },
+  deleteBtn: { padding: "8px 14px", background: "#dc2626", borderRadius: 8, color: "#fff", cursor: "pointer" },
 };
